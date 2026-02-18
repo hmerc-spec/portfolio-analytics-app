@@ -47,7 +47,11 @@
               {% for e in entries %}
                 <tr>
                   <td>{{ e.entry_date }}</td>
-                  <td class="fw-semibold">{{ e.topic }}</td>
+                  <td class="fw-semibold">
+                    <a class="text-decoration-none" href="{{ url_for('learning_detail', entry_id=e.id) }}">
+                        {{ e.topic }}
+                    </a>
+                  </td>
                   <td class="text-end">{{ e.minutes }}</td>
                   <td class="text-end">{{ e.confidence }}</td>
                   <td class="text-secondary">{{ e.summary or "" }}</td>
