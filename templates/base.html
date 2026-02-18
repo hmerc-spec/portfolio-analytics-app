@@ -22,8 +22,9 @@
             <a class="navbar-brand" href="{{ url_for('home') }}">Learning Ops Hub</a>
 
             <div class="ms-auto d-flex gap-2">
-             {% if session.get("logged_in") %}
+            {% if session.get("logged_in") %}
                 <a class="btn btn-outline-light btn-sm" href="{{ url_for('app_home') }}">App</a>
+                <a class="btn btn-outline-light btn-sm" href="{{ url_for('learning_list') }}">Learning</a>
                 <a class="btn btn-warning btn-sm" href="{{ url_for('logout') }}">Logout</a>
             {% else %}
                 <a class="btn btn-outline-light btn-sm" href="{{ url_for('login') }}">Login</a>
