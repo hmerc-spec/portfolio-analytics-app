@@ -67,5 +67,10 @@ def db_check():
     return f"DB OK: {value}"
 
 
+@app.get("/healthz")
+def healthz():
+    return "ok", 200
+
+
 if __name__ == "__main__":
     app.run(debug=True)
