@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Home | Learning Ops Hub{% endblock %}
+
+{% block content %}
+  <div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
+    <div class="container-fluid py-4">
+      <h1 class="display-6 fw-bold">Learning Ops Hub</h1>
+      <p class="col-md-8 fs-5 text-secondary">
+        A private workspace to track learning, bugs, projects, and features — with analytics.
+      </p>
+
+      <div class="d-flex gap-2">
+        <a class="btn btn-primary btn-lg" href="{{ url_for('login') }}">
+          Enter App
+        </a>
+        <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('db_check') }}">
+          DB Check
+        </a>
+      </div>
+
+      <p class="mt-4 small text-muted mb-0">
+        Status: <span class="badge text-bg-success">Online</span>
+      </p>
+    </div>
+  </div>
+{% endblock %}
