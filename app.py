@@ -192,6 +192,86 @@ def learning_edit(entry_id: int):
     return render_template("learning_edit.html", entry_id=entry_id, form=form, errors=[])
 
 
+@app.get("/dashboard")
+@login_required
+def dashboard():
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            # total minutes last 7 days
+            cur.execute(
+                """
+                select coalesce(sum(minutes), 0)
+                from learning_entries
+                where entry_date >= current_date - interval '6 days'
+                """
+            )
+            minutes_7d = cur.fetchone()[0]
+
+            # sessions count last 7 days
+            cur.execute(
+                """
+                select count(*)
+                from learning_entries
+                where entry_date >= current_date - interval '6 days'
+                """
+            )
+            sessions_7d = cur.fetchone()[0]
+
+            # average confidence last 7 days
+            cur.execute(
+                """
+                select coalesce(avg(confidence), 0)
+                from learning_entries
+                where entry_date >= current_date - interval '6 days'
+                """
+            )
+            avg_conf_7d = cur.fetchone()[0]
+
+            # minutes per day (last 14 days) - include missing dates as 0
+            cur.execute(
+                """
+                with days as (
+                  select generate_series(
+                    current_date - interval '13 days',
+                    current_date,
+                    interval '1 day'
+                  )::date as day
+                )
+                select
+                  days.day,
+                  coalesce(sum(le.minutes), 0) as total_minutes
+                from days
+                left join learning_entries le
+                  on le.entry_date = days.day
+                group by days.day
+                order by days.day
+                """
+            )
+            daily_rows = cur.fetchall()
+
+    # Current streak: consecutive days (ending today) with minutes > 0
+    streak_days = 0
+    for day, total_minutes in reversed(daily_rows):  # start from today backwards
+        if int(total_minutes) > 0:
+            streak_days += 1
+        else:
+            break
+
+
+    labels = [r[0].strftime("%b %d") for r in daily_rows]  # e.g., "Feb 19"
+    values = [int(r[1]) for r in daily_rows]
+
+    return render_template(
+        "dashboard.html",
+        minutes_7d=minutes_7d,
+        sessions_7d=sessions_7d,
+        avg_conf_7d=avg_conf_7d,
+        streak_days=streak_days,
+        labels=labels,
+        values=values,
+    )
+
+
 @app.get("/learning/<int:entry_id>")
 @login_required
 def learning_detail(entry_id: int):
@@ -283,7 +363,7 @@ def logout():
 @app.get("/app")
 @login_required
 def app_home():
-    return render_template("app_home.html")
+    return redirect(url_for("dashboard"))
 
 
 @app.get("/db")
