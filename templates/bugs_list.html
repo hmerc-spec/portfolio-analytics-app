@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Bug Vault | Learning Ops Hub{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Bug Vault</h1>
+
+    <div class="d-flex gap-2">
+      <a class="btn btn-primary btn-sm" href="{{ url_for('bugs_new') }}">+ New Bug</a>
+    </div>
+  </div>
+
+  <form class="row g-2 mb-3" method="get" action="{{ url_for('bugs_list') }}">
+    <div class="col-12 col-md-8">
+      <input
+        type="text"
+        class="form-control"
+        name="q"
+        placeholder="Search title, error, fix, tags..."
+        value="{{ q }}"
+      />
+    </div>
+    <div class="col-12 col-md-4 d-flex gap-2">
+      <button class="btn btn-outline-primary w-100" type="submit">Search</button>
+      <a class="btn btn-outline-secondary w-100" href="{{ url_for('bugs_list') }}">Clear</a>
+    </div>
+  </form>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 140px;">Date</th>
+              <th>Title</th>
+              <th style="width: 140px;" class="text-end">Minutes lost</th>
+              <th style="width: 120px;">Status</th>
+              <th style="width: 200px;">Tags</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if bugs %}
+              {% for b in bugs %}
+                <tr>
+                  <td>{{ b.bug_date }}</td>
+                  <td class="fw-semibold">
+                    <a class="text-decoration-none" href="{{ url_for('bugs_detail', bug_id=b.id) }}">
+                     {{ b.title }}
+                    </a>
+                  </td>
+                  <td class="text-end">{{ b.minutes_lost }}</td>
+                  <td>
+                    {% if b.status == "fixed" %}
+                      <span class="badge text-bg-success">fixed</span>
+                    {% else %}
+                      <span class="badge text-bg-warning">open</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if b.tags %}
+                      <span class="badge text-bg-secondary">{{ b.tags }}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-secondary py-4">
+                  No bugs yet. Click <strong>+ New Bug</strong> to add one.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}

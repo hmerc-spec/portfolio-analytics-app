@@ -192,6 +192,118 @@ def learning_edit(entry_id: int):
     return render_template("learning_edit.html", entry_id=entry_id, form=form, errors=[])
 
 
+@app.get("/bugs")
+@login_required
+def bugs_list():
+    q = request.args.get("q", "").strip()
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            if q:
+                cur.execute(
+                    """
+                    select id, bug_date, title, minutes_lost, status, tags
+                    from bug_entries
+                    where title ilike %s
+                       or error_text ilike %s
+                       or fix_text ilike %s
+                       or tags ilike %s
+                    order by bug_date desc, created_at desc
+                    limit 200
+                    """,
+                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"),
+                )
+            else:
+                cur.execute(
+                    """
+                    select id, bug_date, title, minutes_lost, status, tags
+                    from bug_entries
+                    order by bug_date desc, created_at desc
+                    limit 200
+                    """
+                )
+
+            rows = cur.fetchall()
+
+    bugs = [
+        {
+            "id": r[0],
+            "bug_date": r[1],
+            "title": r[2],
+            "minutes_lost": r[3],
+            "status": r[4],
+            "tags": r[5],
+        }
+        for r in rows
+    ]
+
+    return render_template("bugs_list.html", bugs=bugs, q=q)
+
+
+@app.route("/bugs/new", methods=["GET", "POST"])
+@login_required
+def bugs_new():
+    if request.method == "POST":
+        bug_date = request.form.get("bug_date", "").strip()
+        title = request.form.get("title", "").strip()
+        status = request.form.get("status", "open").strip()
+        tags = request.form.get("tags", "").strip() or None
+
+        error_text = request.form.get("error_text", "").strip() or None
+        fix_text = request.form.get("fix_text", "").strip() or None
+
+        minutes_lost_text = request.form.get("minutes_lost", "0").strip()
+
+        errors = []
+        if not title:
+            errors.append("Title is required.")
+
+        if status not in ("open", "fixed"):
+            errors.append("Status must be open or fixed.")
+
+        try:
+            minutes_lost = int(minutes_lost_text)
+            if minutes_lost < 0:
+                errors.append("Minutes lost must be 0 or more.")
+        except ValueError:
+            errors.append("Minutes lost must be a whole number.")
+
+        if errors:
+            return render_template("bugs_new.html", errors=errors, form=request.form), 400
+
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    insert into bug_entries
+                      (bug_date, title, error_text, fix_text, minutes_lost, status, tags)
+                    values
+                      (%s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (bug_date or None, title, error_text, fix_text, minutes_lost, status, tags),
+                )
+
+        return redirect(url_for("bugs_list"))
+
+    return render_template("bugs_new.html", errors=[], form={})
+
+
+@app.post("/bugs/<int:bug_id>/toggle")
+@login_required
+def bugs_toggle_status(bug_id: int):
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                update bug_entries
+                set status = case when status = 'open' then 'fixed' else 'open' end
+                where id = %s
+                """,
+                (bug_id,),
+            )
+    return redirect(url_for("bugs_detail", bug_id=bug_id))
+
+
 @app.get("/dashboard")
 @login_required
 def dashboard():
@@ -352,6 +464,39 @@ def learning_list():
     ]
 
     return render_template("learning_list.html", entries=entries, q=q)
+
+
+@app.get("/bugs/<int:bug_id>")
+@login_required
+def bugs_detail(bug_id: int):
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select id, bug_date, title, status, minutes_lost, tags, error_text, fix_text, created_at
+                from bug_entries
+                where id = %s
+                """,
+                (bug_id,),
+            )
+            row = cur.fetchone()
+
+    if not row:
+        return "Not found", 404
+
+    bug = {
+        "id": row[0],
+        "bug_date": row[1],
+        "title": row[2],
+        "status": row[3],
+        "minutes_lost": row[4],
+        "tags": row[5],
+        "error_text": row[6],
+        "fix_text": row[7],
+        "created_at": row[8],
+    }
+
+    return render_template("bugs_detail.html", bug=bug)
 
 
 @app.get("/logout")
