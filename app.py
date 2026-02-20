@@ -384,6 +384,341 @@ def dashboard():
     )
 
 
+@app.get("/projects")
+@login_required
+def projects_list():
+    q = request.args.get("q", "").strip()
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            if q:
+                cur.execute(
+                    """
+                    select id, created_at, name, status, tags
+                    from projects
+                    where name ilike %s
+                       or problem_statement ilike %s
+                       or notes ilike %s
+                       or tags ilike %s
+                    order by created_at desc
+                    limit 200
+                    """,
+                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"),
+                )
+            else:
+                cur.execute(
+                    """
+                    select id, created_at, name, status, tags
+                    from projects
+                    order by created_at desc
+                    limit 200
+                    """
+                )
+            rows = cur.fetchall()
+
+    projects = [
+        {
+            "id": r[0],
+            "created_at": r[1],
+            "name": r[2],
+            "status": r[3],
+            "tags": r[4],
+        }
+        for r in rows
+    ]
+
+    return render_template("projects_list.html", projects=projects, q=q)
+
+
+@app.get("/projects/<int:project_id>")
+@login_required
+def projects_detail(project_id: int):
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select id, created_at, name, status, tags, problem_statement, notes
+                from projects
+                where id = %s
+                """,
+                (project_id,),
+            )
+            row = cur.fetchone()
+
+    if not row:
+        return "Not found", 404
+
+    project = {
+        "id": row[0],
+        "created_at": row[1],
+        "name": row[2],
+        "status": row[3],
+        "tags": row[4],
+        "problem_statement": row[5],
+        "notes": row[6],
+    }
+
+    return render_template("projects_detail.html", project=project)
+
+
+@app.route("/projects/new", methods=["GET", "POST"])
+@login_required
+def projects_new():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        problem_statement = request.form.get("problem_statement", "").strip()
+        status = request.form.get("status", "idea").strip()
+        notes = request.form.get("notes", "").strip() or None
+        tags = request.form.get("tags", "").strip() or None
+
+        errors = []
+        if not name:
+            errors.append("Project name is required.")
+        if not problem_statement:
+            errors.append("Problem statement is required.")
+        if status not in ("idea", "planned", "in_progress", "paused", "done"):
+            errors.append("Invalid status.")
+
+        if errors:
+            return render_template("projects_new.html", errors=errors, form=request.form), 400
+
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    insert into projects (name, problem_statement, status, notes, tags)
+                    values (%s, %s, %s, %s, %s)
+                    """,
+                    (name, problem_statement, status, notes, tags),
+                )
+
+        return redirect(url_for("projects_list"))
+
+    return render_template("projects_new.html", errors=[], form={})
+
+
+@app.route("/projects/<int:project_id>/edit", methods=["GET", "POST"])
+@login_required
+def projects_edit(project_id: int):
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        problem_statement = request.form.get("problem_statement", "").strip()
+        status = request.form.get("status", "idea").strip()
+        notes = request.form.get("notes", "").strip() or None
+        tags = request.form.get("tags", "").strip() or None
+
+        errors = []
+        if not name:
+            errors.append("Project name is required.")
+        if not problem_statement:
+            errors.append("Problem statement is required.")
+        if status not in ("idea", "planned", "in_progress", "paused", "done"):
+            errors.append("Invalid status.")
+
+        if errors:
+            return render_template(
+                "projects_edit.html",
+                errors=errors,
+                project_id=project_id,
+                form=request.form,
+            ), 400
+
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    update projects
+                    set name=%s, problem_statement=%s, status=%s, notes=%s, tags=%s
+                    where id=%s
+                    """,
+                    (name, problem_statement, status, notes, tags, project_id),
+                )
+
+        return redirect(url_for("projects_detail", project_id=project_id))
+
+    # GET: load existing project
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select name, problem_statement, status, notes, tags
+                from projects
+                where id=%s
+                """,
+                (project_id,),
+            )
+            row = cur.fetchone()
+
+    if not row:
+        return "Not found", 404
+
+    form = {
+        "name": row[0] or "",
+        "problem_statement": row[1] or "",
+        "status": row[2] or "idea",
+        "notes": row[3] or "",
+        "tags": row[4] or "",
+    }
+
+    return render_template("projects_edit.html", errors=[], project_id=project_id, form=form)
+
+
+@app.get("/features")
+@login_required
+def features_list():
+    q = request.args.get("q", "").strip()
+    project_id = request.args.get("project_id", "").strip()
+    status = request.args.get("status", "").strip()
+
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            # Fetch projects for filter dropdown
+            cur.execute("select id, name from projects order by name;")
+            projects = [{"id": r[0], "name": r[1]} for r in cur.fetchall()]
+
+            # Build query dynamically but safely
+            where = []
+            params = []
+
+            if q:
+                where.append("(f.title ilike %s or f.description ilike %s or f.tags ilike %s)")
+                params.extend([f"%{q}%", f"%{q}%", f"%{q}%"])
+
+            if project_id:
+                where.append("f.project_id = %s")
+                params.append(project_id)
+
+            if status:
+                where.append("f.status = %s")
+                params.append(status)
+
+            where_sql = ("where " + " and ".join(where)) if where else ""
+
+            cur.execute(
+                f"""
+                select f.id, f.created_at, f.project_id, p.name as project_name,
+                       f.title, f.priority, f.status, f.effort, f.value, f.tags
+                from features f
+                join projects p on p.id = f.project_id
+                {where_sql}
+                order by
+                  case f.status
+                    when 'in_progress' then 1
+                    when 'blocked' then 2
+                    when 'planned' then 3
+                    when 'backlog' then 4
+                    when 'done' then 5
+                    else 6
+                  end,
+                  f.priority asc,
+                  f.created_at desc
+                limit 300
+                """,
+                params,
+            )
+            rows = cur.fetchall()
+
+    features = [
+        {
+            "id": r[0],
+            "created_at": r[1],
+            "project_id": r[2],
+            "project_name": r[3],
+            "title": r[4],
+            "priority": r[5],
+            "status": r[6],
+            "effort": r[7],
+            "value": r[8],
+            "tags": r[9],
+        }
+        for r in rows
+    ]
+
+    return render_template(
+        "features_list.html",
+        features=features,
+        projects=projects,
+        q=q,
+        project_id=project_id,
+        status=status,
+    )
+
+
+@app.route("/features/new", methods=["GET", "POST"])
+@login_required
+def features_new():
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("select id, name from projects order by name;")
+            projects = [{"id": r[0], "name": r[1]} for r in cur.fetchall()]
+
+    if request.method == "POST":
+        project_id = request.form.get("project_id", "").strip()
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "").strip() or None
+        tags = request.form.get("tags", "").strip() or None
+
+        status = request.form.get("status", "backlog").strip()
+
+        priority_text = request.form.get("priority", "3").strip()
+        effort_text = request.form.get("effort", "3").strip()
+        value_text = request.form.get("value", "3").strip()
+
+        errors = []
+        if not project_id:
+            errors.append("Project is required.")
+        if not title:
+            errors.append("Title is required.")
+        if status not in ("backlog", "planned", "in_progress", "blocked", "done"):
+            errors.append("Invalid status.")
+
+        try:
+            priority = int(priority_text)
+            if not (1 <= priority <= 5):
+                errors.append("Priority must be between 1 and 5.")
+        except ValueError:
+            errors.append("Priority must be a whole number.")
+
+        try:
+            effort = int(effort_text)
+            if not (1 <= effort <= 5):
+                errors.append("Effort must be between 1 and 5.")
+        except ValueError:
+            errors.append("Effort must be a whole number.")
+
+        try:
+            value = int(value_text)
+            if not (1 <= value <= 5):
+                errors.append("Value must be between 1 and 5.")
+        except ValueError:
+            errors.append("Value must be a whole number.")
+
+        if errors:
+            return render_template(
+                "features_new.html",
+                projects=projects,
+                errors=errors,
+                form=request.form,
+            ), 400
+
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    insert into features
+                      (project_id, title, description, priority, status, effort, value, tags)
+                    values
+                      (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (project_id, title, description, priority, status, effort, value, tags),
+                )
+
+        return redirect(url_for("features_list"))
+
+    return render_template("features_new.html", projects=projects, errors=[], form={})
+
+
+
 @app.get("/learning/<int:entry_id>")
 @login_required
 def learning_detail(entry_id: int):
@@ -497,6 +832,89 @@ def bugs_detail(bug_id: int):
     }
 
     return render_template("bugs_detail.html", bug=bug)
+
+
+@app.route("/bugs/<int:bug_id>/edit", methods=["GET", "POST"])
+@login_required
+def bugs_edit(bug_id: int):
+    if request.method == "POST":
+        bug_date = request.form.get("bug_date", "").strip()
+        title = request.form.get("title", "").strip()
+        status = request.form.get("status", "open").strip()
+        tags = request.form.get("tags", "").strip() or None
+
+        error_text = request.form.get("error_text", "").strip() or None
+        fix_text = request.form.get("fix_text", "").strip() or None
+
+        minutes_lost_text = request.form.get("minutes_lost", "0").strip()
+
+        errors = []
+        if not title:
+            errors.append("Title is required.")
+        if status not in ("open", "fixed"):
+            errors.append("Status must be open or fixed.")
+
+        try:
+            minutes_lost = int(minutes_lost_text)
+            if minutes_lost < 0:
+                errors.append("Minutes lost must be 0 or more.")
+        except ValueError:
+            errors.append("Minutes lost must be a whole number.")
+
+        if errors:
+            return render_template(
+                "bugs_edit.html",
+                errors=errors,
+                bug_id=bug_id,
+                form=request.form,
+            ), 400
+
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    update bug_entries
+                    set bug_date = coalesce(%s, bug_date),
+                        title = %s,
+                        error_text = %s,
+                        fix_text = %s,
+                        minutes_lost = %s,
+                        status = %s,
+                        tags = %s
+                    where id = %s
+                    """,
+                    (bug_date or None, title, error_text, fix_text, minutes_lost, status, tags, bug_id),
+                )
+
+        return redirect(url_for("bugs_detail", bug_id=bug_id))
+
+    # GET: load existing
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                select bug_date, title, error_text, fix_text, minutes_lost, status, tags
+                from bug_entries
+                where id = %s
+                """,
+                (bug_id,),
+            )
+            row = cur.fetchone()
+
+    if not row:
+        return "Not found", 404
+
+    form = {
+        "bug_date": str(row[0]) if row[0] else "",
+        "title": row[1] or "",
+        "error_text": row[2] or "",
+        "fix_text": row[3] or "",
+        "minutes_lost": row[4] if row[4] is not None else 0,
+        "status": row[5] or "open",
+        "tags": row[6] or "",
+    }
+
+    return render_template("bugs_edit.html", errors=[], bug_id=bug_id, form=form)
 
 
 @app.get("/logout")

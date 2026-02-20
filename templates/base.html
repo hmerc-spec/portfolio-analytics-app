@@ -30,6 +30,18 @@
               >Dashboard</a>
 
               <a
+                class="btn btn-outline-light btn-sm {% if request.path.startswith('/projects') %}active{% endif %}"
+                href="{{ url_for('projects_list') }}"
+                {% if request.path.startswith('/projects') %}aria-current="page"{% endif %}
+              >Projects</a>
+
+              <a
+                class="btn btn-outline-light btn-sm {% if request.path.startswith('/features') %}active{% endif %}"
+                href="{{ url_for('features_list') }}"
+                {% if request.path.startswith('/features') %}aria-current="page"{% endif %}
+              >Features</a>
+
+              <a
                 class="btn btn-outline-light btn-sm {% if request.path.startswith('/learning') %}active{% endif %}"
                 href="{{ url_for('learning_list') }}"
                 {% if request.path.startswith('/learning') %}aria-current="page"{% endif %}

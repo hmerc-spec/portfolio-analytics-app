@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Bug | Learning Ops Hub{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">Edit Bug</h1>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('bugs_detail', bug_id=bug_id) }}">Back</a>
+      </div>
+
+      {% if errors %}
+        <div class="alert alert-danger" role="alert">
+          <ul class="mb-0">
+            {% for e in errors %}
+              <li>{{ e }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <div class="card shadow-sm">
+        <div class="card-body p-4">
+          <form method="post" action="{{ url_for('bugs_edit', bug_id=bug_id) }}">
+            <div class="row g-3">
+              <div class="col-12 col-md-4">
+                <label class="form-label" for="bug_date">Date</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="bug_date"
+                  name="bug_date"
+                  value="{{ form.get('bug_date', '') }}"
+                />
+              </div>
+
+              <div class="col-12 col-md-8">
+                <label class="form-label" for="title">Title *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="title"
+                  name="title"
+                  required
+                  value="{{ form.get('title', '') }}"
+                />
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label class="form-label" for="status">Status</label>
+                {% set s = form.get('status', 'open') %}
+                <select class="form-select" id="status" name="status">
+                  <option value="open" {% if s == 'open' %}selected{% endif %}>open</option>
+                  <option value="fixed" {% if s == 'fixed' %}selected{% endif %}>fixed</option>
+                </select>
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label class="form-label" for="minutes_lost">Minutes lost</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="minutes_lost"
+                  name="minutes_lost"
+                  min="0"
+                  value="{{ form.get('minutes_lost', 0) }}"
+                />
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label class="form-label" for="tags">Tags</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="tags"
+                  name="tags"
+                  value="{{ form.get('tags', '') }}"
+                />
+              </div>
+
+              <div class="col-12">
+                <label class="form-label" for="error_text">Error / What happened</label>
+                <textarea class="form-control" id="error_text" name="error_text" rows="4"
+                >{{ form.get('error_text', '') }}</textarea>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label" for="fix_text">Fix / Resolution</label>
+                <textarea class="form-control" id="fix_text" name="fix_text" rows="4"
+                >{{ form.get('fix_text', '') }}</textarea>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+              <a class="btn btn-outline-secondary" href="{{ url_for('bugs_detail', bug_id=bug_id) }}">Cancel</a>
+              <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Features | Learning Ops Hub{% endblock %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Features</h1>
+
+    <div class="d-flex gap-2">
+      <a class="btn btn-primary btn-sm" href="{{ url_for('features_new') }}">+ New Feature</a>
+    </div>
+  </div>
+
+  <form class="row g-2 mb-3" method="get" action="{{ url_for('features_list') }}">
+    <div class="col-12 col-md-5">
+      <input
+        type="text"
+        class="form-control"
+        name="q"
+        placeholder="Search title, description, tags..."
+        value="{{ q }}"
+      />
+    </div>
+
+    <div class="col-12 col-md-3">
+      <select class="form-select" name="project_id">
+        <option value="">All projects</option>
+        {% for p in projects %}
+          <option value="{{ p.id }}" {% if project_id and project_id|int == p.id %}selected{% endif %}>
+            {{ p.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-12 col-md-2">
+      <select class="form-select" name="status">
+        <option value="">All statuses</option>
+        {% for s in ['backlog','planned','in_progress','blocked','done'] %}
+          <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-12 col-md-2 d-flex gap-2">
+      <button class="btn btn-outline-primary w-100" type="submit">Filter</button>
+      <a class="btn btn-outline-secondary w-100" href="{{ url_for('features_list') }}">Clear</a>
+    </div>
+  </form>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Title</th>
+              <th style="width: 220px;">Project</th>
+              <th style="width: 120px;">Status</th>
+              <th style="width: 90px;" class="text-end">P</th>
+              <th style="width: 90px;" class="text-end">E</th>
+              <th style="width: 90px;" class="text-end">V</th>
+              <th style="width: 200px;">Tags</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if features %}
+              {% for f in features %}
+                <tr>
+                  <td class="fw-semibold">{{ f.title }}</td>
+                  <td class="text-secondary">{{ f.project_name }}</td>
+                  <td>
+                    {% if f.status == 'done' %}
+                      <span class="badge text-bg-success">done</span>
+                    {% elif f.status == 'in_progress' %}
+                      <span class="badge text-bg-primary">in_progress</span>
+                    {% elif f.status == 'blocked' %}
+                      <span class="badge text-bg-danger">blocked</span>
+                    {% elif f.status == 'planned' %}
+                      <span class="badge text-bg-info">planned</span>
+                    {% else %}
+                      <span class="badge text-bg-secondary">backlog</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">{{ f.priority }}</td>
+                  <td class="text-end">{{ f.effort }}</td>
+                  <td class="text-end">{{ f.value }}</td>
+                  <td>
+                    {% if f.tags %}
+                      <span class="badge text-bg-secondary">{{ f.tags }}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="7" class="text-center text-secondary py-4">
+                  No features yet. Click <strong>+ New Feature</strong> to add one.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-secondary small mt-2">
+    P=Priority (1 highest), E=Effort (1 small), V=Value (1 low)
+  </div>
+{% endblock %}
