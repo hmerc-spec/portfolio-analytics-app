@@ -1,4 +1,5 @@
 import os
+import math
 from functools import wraps
 
 import psycopg
@@ -25,6 +26,24 @@ def get_db_connection():
     return psycopg.connect(dsn)
 
 
+def build_pagination_window(page: int, total_pages: int):
+    if total_pages <= 1:
+        return []
+    pages = {1, total_pages}
+    for p in range(page - 2, page + 3):
+        if 1 <= p <= total_pages:
+            pages.add(p)
+    ordered = sorted(pages)
+    window = []
+    last = None
+    for p in ordered:
+        if last is not None and p - last > 1:
+            window.append("…")
+        window.append(p)
+        last = p
+    return window
+
+
 @app.get("/")
 def home():
     return render_template("home.html")
@@ -41,7 +60,7 @@ def login():
 
         if password == expected:
             session["logged_in"] = True
-            return redirect(url_for("app_home"))
+            return redirect(url_for("dashboard"))
 
         return render_template("login.html", error="Invalid password"), 401
 
@@ -196,10 +215,34 @@ def learning_edit(entry_id: int):
 @login_required
 def bugs_list():
     q = request.args.get("q", "").strip()
+    page_text = request.args.get("page", "1").strip()
+    try:
+        page = int(page_text)
+    except ValueError:
+        page = 1
+    if page < 1:
+        page = 1
+    per_page = 20
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             if q:
+                cur.execute(
+                    """
+                    select count(*)
+                    from bug_entries
+                    where title ilike %s
+                       or error_text ilike %s
+                       or fix_text ilike %s
+                       or tags ilike %s
+                    """,
+                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"),
+                )
+                total_count = cur.fetchone()[0]
+                total_pages = max(1, math.ceil(total_count / per_page))
+                if page > total_pages:
+                    page = total_pages
+                offset = (page - 1) * per_page
                 cur.execute(
                     """
                     select id, bug_date, title, minutes_lost, status, tags
@@ -209,22 +252,39 @@ def bugs_list():
                        or fix_text ilike %s
                        or tags ilike %s
                     order by bug_date desc, created_at desc
-                    limit 200
+                    limit %s
+                    offset %s
                     """,
-                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"),
+                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", per_page, offset),
                 )
             else:
+                cur.execute(
+                    """
+                    select count(*)
+                    from bug_entries
+                    """
+                )
+                total_count = cur.fetchone()[0]
+                total_pages = max(1, math.ceil(total_count / per_page))
+                if page > total_pages:
+                    page = total_pages
+                offset = (page - 1) * per_page
                 cur.execute(
                     """
                     select id, bug_date, title, minutes_lost, status, tags
                     from bug_entries
                     order by bug_date desc, created_at desc
-                    limit 200
-                    """
+                    limit %s
+                    offset %s
+                    """,
+                    (per_page, offset),
                 )
 
             rows = cur.fetchall()
 
+    has_prev = page > 1
+    has_next = page < total_pages
+    page_numbers = build_pagination_window(page, total_pages)
     bugs = [
         {
             "id": r[0],
@@ -237,7 +297,16 @@ def bugs_list():
         for r in rows
     ]
 
-    return render_template("bugs_list.html", bugs=bugs, q=q)
+    return render_template(
+        "bugs_list.html",
+        bugs=bugs,
+        q=q,
+        page=page,
+        total_pages=total_pages,
+        has_prev=has_prev,
+        has_next=has_next,
+        page_numbers=page_numbers,
+    )
 
 
 @app.route("/bugs/new", methods=["GET", "POST"])
@@ -388,10 +457,34 @@ def dashboard():
 @login_required
 def projects_list():
     q = request.args.get("q", "").strip()
+    page_text = request.args.get("page", "1").strip()
+    try:
+        page = int(page_text)
+    except ValueError:
+        page = 1
+    if page < 1:
+        page = 1
+    per_page = 20
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             if q:
+                cur.execute(
+                    """
+                    select count(*)
+                    from projects
+                    where name ilike %s
+                       or problem_statement ilike %s
+                       or notes ilike %s
+                       or tags ilike %s
+                    """,
+                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"),
+                )
+                total_count = cur.fetchone()[0]
+                total_pages = max(1, math.ceil(total_count / per_page))
+                if page > total_pages:
+                    page = total_pages
+                offset = (page - 1) * per_page
                 cur.execute(
                     """
                     select id, created_at, name, status, tags
@@ -401,21 +494,38 @@ def projects_list():
                        or notes ilike %s
                        or tags ilike %s
                     order by created_at desc
-                    limit 200
+                    limit %s
+                    offset %s
                     """,
-                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"),
+                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", per_page, offset),
                 )
             else:
+                cur.execute(
+                    """
+                    select count(*)
+                    from projects
+                    """
+                )
+                total_count = cur.fetchone()[0]
+                total_pages = max(1, math.ceil(total_count / per_page))
+                if page > total_pages:
+                    page = total_pages
+                offset = (page - 1) * per_page
                 cur.execute(
                     """
                     select id, created_at, name, status, tags
                     from projects
                     order by created_at desc
-                    limit 200
-                    """
+                    limit %s
+                    offset %s
+                    """,
+                    (per_page, offset),
                 )
             rows = cur.fetchall()
 
+    has_prev = page > 1
+    has_next = page < total_pages
+    page_numbers = build_pagination_window(page, total_pages)
     projects = [
         {
             "id": r[0],
@@ -427,7 +537,16 @@ def projects_list():
         for r in rows
     ]
 
-    return render_template("projects_list.html", projects=projects, q=q)
+    return render_template(
+        "projects_list.html",
+        projects=projects,
+        q=q,
+        page=page,
+        total_pages=total_pages,
+        has_prev=has_prev,
+        has_next=has_next,
+        page_numbers=page_numbers,
+    )
 
 
 @app.get("/projects/<int:project_id>")
@@ -569,6 +688,14 @@ def features_list():
     q = request.args.get("q", "").strip()
     project_id = request.args.get("project_id", "").strip()
     status = request.args.get("status", "").strip()
+    page_text = request.args.get("page", "1").strip()
+    try:
+        page = int(page_text)
+    except ValueError:
+        page = 1
+    if page < 1:
+        page = 1
+    per_page = 20
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
@@ -596,6 +723,20 @@ def features_list():
 
             cur.execute(
                 f"""
+                select count(*)
+                from features f
+                {where_sql}
+                """,
+                params,
+            )
+            total_count = cur.fetchone()[0]
+            total_pages = max(1, math.ceil(total_count / per_page))
+            if page > total_pages:
+                page = total_pages
+            offset = (page - 1) * per_page
+
+            cur.execute(
+                f"""
                 select f.id, f.created_at, f.project_id, p.name as project_name,
                        f.title, f.priority, f.status, f.effort, f.value, f.tags
                 from features f
@@ -612,12 +753,16 @@ def features_list():
                   end,
                   f.priority asc,
                   f.created_at desc
-                limit 300
+                limit %s
+                offset %s
                 """,
-                params,
+                params + [per_page, offset],
             )
             rows = cur.fetchall()
 
+    has_prev = page > 1
+    has_next = page < total_pages
+    page_numbers = build_pagination_window(page, total_pages)
     features = [
         {
             "id": r[0],
@@ -641,6 +786,11 @@ def features_list():
         q=q,
         project_id=project_id,
         status=status,
+        page=page,
+        total_pages=total_pages,
+        has_prev=has_prev,
+        has_next=has_next,
+        page_numbers=page_numbers,
     )
 
 
@@ -756,10 +906,34 @@ def learning_detail(entry_id: int):
 @login_required
 def learning_list():
     q = request.args.get("q", "").strip()
+    page_text = request.args.get("page", "1").strip()
+    try:
+        page = int(page_text)
+    except ValueError:
+        page = 1
+    if page < 1:
+        page = 1
+    per_page = 20
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             if q:
+                cur.execute(
+                    """
+                    select count(*)
+                    from learning_entries
+                    where topic ilike %s
+                       or summary ilike %s
+                       or notes ilike %s
+                       or tags ilike %s
+                    """,
+                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"),
+                )
+                total_count = cur.fetchone()[0]
+                total_pages = max(1, math.ceil(total_count / per_page))
+                if page > total_pages:
+                    page = total_pages
+                offset = (page - 1) * per_page
                 cur.execute(
                     """
                     select id, entry_date, topic, minutes, confidence, summary, tags
@@ -769,22 +943,39 @@ def learning_list():
                        or notes ilike %s
                        or tags ilike %s
                     order by entry_date desc, created_at desc
-                    limit 200
+                    limit %s
+                    offset %s
                     """,
-                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"),
+                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", per_page, offset),
                 )
             else:
+                cur.execute(
+                    """
+                    select count(*)
+                    from learning_entries
+                    """
+                )
+                total_count = cur.fetchone()[0]
+                total_pages = max(1, math.ceil(total_count / per_page))
+                if page > total_pages:
+                    page = total_pages
+                offset = (page - 1) * per_page
                 cur.execute(
                     """
                     select id, entry_date, topic, minutes, confidence, summary, tags
                     from learning_entries
                     order by entry_date desc, created_at desc
-                    limit 200
-                    """
+                    limit %s
+                    offset %s
+                    """,
+                    (per_page, offset),
                 )
 
             rows = cur.fetchall()
 
+    has_prev = page > 1
+    has_next = page < total_pages
+    page_numbers = build_pagination_window(page, total_pages)
     entries = [
         {
             "id": r[0],
@@ -798,7 +989,16 @@ def learning_list():
         for r in rows
     ]
 
-    return render_template("learning_list.html", entries=entries, q=q)
+    return render_template(
+        "learning_list.html",
+        entries=entries,
+        q=q,
+        page=page,
+        total_pages=total_pages,
+        has_prev=has_prev,
+        has_next=has_next,
+        page_numbers=page_numbers,
+    )
 
 
 @app.get("/bugs/<int:bug_id>")

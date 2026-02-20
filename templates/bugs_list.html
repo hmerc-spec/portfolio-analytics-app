@@ -7,6 +7,7 @@
     <h1 class="h4 mb-0">Bug Vault</h1>
 
     <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('dashboard') }}">Back</a>
       <a class="btn btn-primary btn-sm" href="{{ url_for('bugs_new') }}">+ New Bug</a>
     </div>
   </div>
@@ -77,4 +78,40 @@
       </div>
     </div>
   </div>
+
+  {% if total_pages > 1 %}
+    <nav class="mt-3" aria-label="Bugs pagination">
+      <ul class="pagination">
+        {% if has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('bugs_list', q=q, page=page-1) }}">Prev</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">Prev</span>
+          </li>
+        {% endif %}
+
+        {% for p in page_numbers %}
+          {% if p == "…" %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% else %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('bugs_list', q=q, page=p) }}">{{ p }}</a>
+            </li>
+          {% endif %}
+        {% endfor %}
+
+        {% if has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('bugs_list', q=q, page=page+1) }}">Next</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">Next</span>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
 {% endblock %}

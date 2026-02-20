@@ -7,16 +7,27 @@
     <div class="container-fluid py-4">
       <h1 class="display-6 fw-bold">Learning Ops Hub</h1>
       <p class="col-md-8 fs-5 text-secondary">
-        A private workspace to track learning, bugs, projects, and features — with analytics.
+        A private workspace to track learning, bugs, projects, and features with analytics.
       </p>
 
+      <ul class="mb-4">
+        <li>Learning Log for capturing sessions, time, and confidence.</li>
+        <li>Bug Vault for tracking issues, impact, and fixes.</li>
+        <li>Project Vault for status and notes.</li>
+        <li>Features Vault for planning and prioritization.</li>
+        <li>Dashboard for weekly totals, averages, and streaks.</li>
+      </ul>
+
       <div class="d-flex gap-2">
-        <a class="btn btn-primary btn-lg" href="{{ url_for('login') }}">
-          Enter App
-        </a>
-        <a class="btn btn-outline-secondary btn-lg" href="{{ url_for('db_check') }}">
-          DB Check
-        </a>
+        {% if session.get("logged_in") %}
+          <a class="btn btn-primary btn-lg" href="{{ url_for('dashboard') }}">
+            Go to Dashboard
+          </a>
+        {% else %}
+          <a class="btn btn-primary btn-lg" href="{{ url_for('login') }}">
+            Login
+          </a>
+        {% endif %}
       </div>
 
       <p class="mt-4 small text-muted mb-0">

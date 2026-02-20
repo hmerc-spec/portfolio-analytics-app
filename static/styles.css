@@ -1,0 +1,14 @@
+.offcanvas .nav-link {
+  padding: 0.6rem 0.9rem;
+  border-radius: 0.5rem;
+}
+
+.offcanvas .nav-link.active {
+  background-color: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  font-weight: 600;
+}
+
+.offcanvas .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}

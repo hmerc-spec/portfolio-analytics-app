@@ -17,49 +17,81 @@
   </head>
 
   <body class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('home') }}">Learning Ops Hub</a>
+    <nav class="navbar navbar-dark bg-dark">
+      <div class="container">
+        <div class="d-flex align-items-center gap-2">
+          {% if session.get("logged_in") %}
+            <button
+              class="navbar-toggler"
+              type="button"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#navOffcanvas"
+              aria-controls="navOffcanvas"
+              aria-label="Toggle navigation"
+            >
+              <span class="navbar-toggler-icon"></span>
+            </button>
+          {% endif %}
 
-            <div class="ms-auto d-flex gap-2">
-            {% if session.get("logged_in") %}
-              <a
-                class="btn btn-outline-light btn-sm {% if request.path.startswith('/dashboard') %}active{% endif %}"
-                href="{{ url_for('dashboard') }}"
-                {% if request.path.startswith('/dashboard') %}aria-current="page"{% endif %}
-              >Dashboard</a>
-
-              <a
-                class="btn btn-outline-light btn-sm {% if request.path.startswith('/projects') %}active{% endif %}"
-                href="{{ url_for('projects_list') }}"
-                {% if request.path.startswith('/projects') %}aria-current="page"{% endif %}
-              >Projects</a>
-
-              <a
-                class="btn btn-outline-light btn-sm {% if request.path.startswith('/features') %}active{% endif %}"
-                href="{{ url_for('features_list') }}"
-                {% if request.path.startswith('/features') %}aria-current="page"{% endif %}
-              >Features</a>
-
-              <a
-                class="btn btn-outline-light btn-sm {% if request.path.startswith('/learning') %}active{% endif %}"
-                href="{{ url_for('learning_list') }}"
-                {% if request.path.startswith('/learning') %}aria-current="page"{% endif %}
-              >Learning</a>
-
-              <a
-                class="btn btn-outline-light btn-sm {% if request.path.startswith('/bugs') %}active{% endif %}"
-                href="{{ url_for('bugs_list') }}"
-                {% if request.path.startswith('/bugs') %}aria-current="page"{% endif %}
-              >Bugs</a>
-
-              <a class="btn btn-warning btn-sm" href="{{ url_for('logout') }}">Logout</a>
-            {% else %}
-              <a class="btn btn-outline-light btn-sm" href="{{ url_for('login') }}">Login</a>
-            {% endif %}
-            </div>
+          <a class="navbar-brand mb-0" href="{{ url_for('home') }}">Learning Ops Hub</a>
         </div>
+
+        <div class="ms-auto d-flex">
+          {% if session.get("logged_in") %}
+            <a class="btn btn-warning btn-sm" href="{{ url_for('logout') }}">Logout</a>
+          {% else %}
+            <a class="btn btn-outline-light btn-sm" href="{{ url_for('login') }}">Login</a>
+          {% endif %}
+        </div>
+      </div>
     </nav>
+
+    {% if session.get("logged_in") %}
+      <div
+        class="offcanvas offcanvas-start text-bg-dark"
+        tabindex="-1"
+        id="navOffcanvas"
+        aria-labelledby="navOffcanvasLabel"
+      >
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title" id="navOffcanvasLabel">Navigation</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+          <div class="nav flex-column">
+            <a
+              class="nav-link text-white {% if request.path.startswith('/dashboard') %}active{% endif %}"
+              href="{{ url_for('dashboard') }}"
+              {% if request.path.startswith('/dashboard') %}aria-current="page"{% endif %}
+            >Dashboard</a>
+
+            <a
+              class="nav-link text-white {% if request.path.startswith('/projects') %}active{% endif %}"
+              href="{{ url_for('projects_list') }}"
+              {% if request.path.startswith('/projects') %}aria-current="page"{% endif %}
+            >Projects</a>
+
+            <a
+              class="nav-link text-white {% if request.path.startswith('/features') %}active{% endif %}"
+              href="{{ url_for('features_list') }}"
+              {% if request.path.startswith('/features') %}aria-current="page"{% endif %}
+            >Features</a>
+
+            <a
+              class="nav-link text-white {% if request.path.startswith('/bugs') %}active{% endif %}"
+              href="{{ url_for('bugs_list') }}"
+              {% if request.path.startswith('/bugs') %}aria-current="page"{% endif %}
+            >Bugs</a>
+
+            <a
+              class="nav-link text-white {% if request.path.startswith('/learning') %}active{% endif %}"
+              href="{{ url_for('learning_list') }}"
+              {% if request.path.startswith('/learning') %}aria-current="page"{% endif %}
+            >Learning</a>
+          </div>
+        </div>
+      </div>
+    {% endif %}
 
 
     <main class="container py-5">
