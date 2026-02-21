@@ -3,67 +3,338 @@
 {% block title %}Dashboard | Learning Ops Hub{% endblock %}
 
 {% block content %}
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <h1 class="h4 mb-0">Dashboard</h1>
-    <div class="d-flex flex-wrap gap-2">
-      <a class="btn btn-primary btn-sm" href="{{ url_for('learning_new') }}">+ New Learning Entry</a>
-      <a class="btn btn-outline-primary btn-sm" href="{{ url_for('bugs_new') }}">+ New Bug</a>
-      <a class="btn btn-outline-primary btn-sm" href="{{ url_for('projects_new') }}">+ New Project</a>
-      <a class="btn btn-outline-primary btn-sm" href="{{ url_for('features_new') }}">+ New Feature</a>
+  <h1 class="display-6 fw-semibold mb-4">Dashboard</h1>
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h4 fw-semibold mb-0">Projects</h2>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('projects_new') }}">+ New Project</a>
+  </div>
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-6 g-3">
+    <div class="col">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="text-secondary small"><span class="badge status-idea">idea</span></div>
+        <div class="display-6">
+          {% if projects_kpis.idea > 0 %}
+            <a class="text-decoration-none text-reset" href="{{ url_for('projects_list', status='idea') }}">
+              {{ projects_kpis.idea }}
+            </a>
+          {% else %}
+            {{ projects_kpis.idea }}
+          {% endif %}
+        </div>
+      </div></div>
+    </div>
+    <div class="col">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="text-secondary small"><span class="badge status-planned">planned</span></div>
+        <div class="display-6">
+          {% if projects_kpis.planned > 0 %}
+            <a class="text-decoration-none text-reset" href="{{ url_for('projects_list', status='planned') }}">
+              {{ projects_kpis.planned }}
+            </a>
+          {% else %}
+            {{ projects_kpis.planned }}
+          {% endif %}
+        </div>
+      </div></div>
+    </div>
+    <div class="col">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="text-secondary small"><span class="badge status-in_progress">in_progress</span></div>
+        <div class="display-6">
+          {% if projects_kpis.in_progress > 0 %}
+            <a class="text-decoration-none text-reset" href="{{ url_for('projects_list', status='in_progress') }}">
+              {{ projects_kpis.in_progress }}
+            </a>
+          {% else %}
+            {{ projects_kpis.in_progress }}
+          {% endif %}
+        </div>
+      </div></div>
+    </div>
+    <div class="col">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="text-secondary small"><span class="badge status-paused">paused</span></div>
+        <div class="display-6">
+          {% if projects_kpis.paused > 0 %}
+            <a class="text-decoration-none text-reset" href="{{ url_for('projects_list', status='paused') }}">
+              {{ projects_kpis.paused }}
+            </a>
+          {% else %}
+            {{ projects_kpis.paused }}
+          {% endif %}
+        </div>
+      </div></div>
+    </div>
+    <div class="col">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="text-secondary small"><span class="badge status-done">done</span></div>
+        <div class="display-6">
+          {% if projects_kpis.done > 0 %}
+            <a class="text-decoration-none text-reset" href="{{ url_for('projects_list', status='done') }}">
+              {{ projects_kpis.done }}
+            </a>
+          {% else %}
+            {{ projects_kpis.done }}
+          {% endif %}
+        </div>
+      </div></div>
+    </div>
+    <div class="col">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="text-secondary small">Total</div>
+        <div class="display-6">
+          {% if projects_kpis.total > 0 %}
+            <a class="text-decoration-none text-reset" href="{{ url_for('projects_list') }}">
+              {{ projects_kpis.total }}
+            </a>
+          {% else %}
+            {{ projects_kpis.total }}
+          {% endif %}
+        </div>
+      </div></div>
     </div>
   </div>
 
-<div class="row g-3 row-cols-1 row-cols-md-2 row-cols-lg-4">
-  <!-- Card 1 -->
-  <div class="col">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <div class="text-secondary small">Minutes (last 7 days)</div>
-        <div class="display-6">{{ minutes_7d }}</div>
+  <hr class="my-5" />
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h4 fw-semibold mb-0">Features</h2>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('features_new') }}">+ New Feature</a>
+  </div>
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-6 g-3">
+    <div class="col">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="text-secondary small"><span class="badge status-backlog">backlog</span></div>
+        <div class="display-6">
+          {% if features_kpis.backlog > 0 %}
+            <a class="text-decoration-none text-reset" href="{{ url_for('features_list', status='backlog') }}">
+              {{ features_kpis.backlog }}
+            </a>
+          {% else %}
+            {{ features_kpis.backlog }}
+          {% endif %}
+        </div>
+      </div></div>
+    </div>
+    <div class="col">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="text-secondary small"><span class="badge status-planned">planned</span></div>
+        <div class="display-6">
+          {% if features_kpis.planned > 0 %}
+            <a class="text-decoration-none text-reset" href="{{ url_for('features_list', status='planned') }}">
+              {{ features_kpis.planned }}
+            </a>
+          {% else %}
+            {{ features_kpis.planned }}
+          {% endif %}
+        </div>
+      </div></div>
+    </div>
+    <div class="col">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="text-secondary small"><span class="badge status-in_progress">in_progress</span></div>
+        <div class="display-6">
+          {% if features_kpis.in_progress > 0 %}
+            <a class="text-decoration-none text-reset" href="{{ url_for('features_list', status='in_progress') }}">
+              {{ features_kpis.in_progress }}
+            </a>
+          {% else %}
+            {{ features_kpis.in_progress }}
+          {% endif %}
+        </div>
+      </div></div>
+    </div>
+    <div class="col">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="text-secondary small"><span class="badge status-blocked">blocked</span></div>
+        <div class="display-6">
+          {% if features_kpis.blocked > 0 %}
+            <a class="text-decoration-none text-reset" href="{{ url_for('features_list', status='blocked') }}">
+              {{ features_kpis.blocked }}
+            </a>
+          {% else %}
+            {{ features_kpis.blocked }}
+          {% endif %}
+        </div>
+      </div></div>
+    </div>
+    <div class="col">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="text-secondary small"><span class="badge status-done">done</span></div>
+        <div class="display-6">
+          {% if features_kpis.done > 0 %}
+            <a class="text-decoration-none text-reset" href="{{ url_for('features_list', status='done') }}">
+              {{ features_kpis.done }}
+            </a>
+          {% else %}
+            {{ features_kpis.done }}
+          {% endif %}
+        </div>
+      </div></div>
+    </div>
+    <div class="col">
+      <div class="card shadow-sm"><div class="card-body">
+        <div class="text-secondary small">Total</div>
+        <div class="display-6">
+          {% if features_kpis.total > 0 %}
+            <a class="text-decoration-none text-reset" href="{{ url_for('features_list') }}">
+              {{ features_kpis.total }}
+            </a>
+          {% else %}
+            {{ features_kpis.total }}
+          {% endif %}
+        </div>
+      </div></div>
+    </div>
+  </div>
+
+  <hr class="my-5" />
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h4 fw-semibold mb-0">Bugs</h2>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('bugs_new') }}">+ New Bug</a>
+  </div>
+  <div class="row g-3 row-cols-1 row-cols-md-2 row-cols-lg-3">
+    <div class="col">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-secondary small"><span class="badge status-open">open</span></div>
+          <div class="display-6">
+            {% if open_bugs > 0 %}
+              <a class="text-decoration-none text-reset" href="{{ url_for('bugs_list', status='open') }}">
+                {{ open_bugs }}
+              </a>
+            {% else %}
+              {{ open_bugs }}
+            {% endif %}
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Card 2 -->
-  <div class="col">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <div class="text-secondary small">Sessions (last 7 days)</div>
-        <div class="display-6">{{ sessions_7d }}</div>
+    <div class="col">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-secondary small"><span class="badge status-fixed">fixed</span></div>
+          <div class="display-6">
+            {% if fixed_bugs > 0 %}
+              <a class="text-decoration-none text-reset" href="{{ url_for('bugs_list', status='fixed') }}">
+                {{ fixed_bugs }}
+              </a>
+            {% else %}
+              {{ fixed_bugs }}
+            {% endif %}
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Card 3 -->
-  <div class="col">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <div class="text-secondary small">Avg confidence (last 7 days)</div>
-        <div class="display-6">{{ "%.2f"|format(avg_conf_7d) }}</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Card 4 -->
-  <div class="col">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <div class="text-secondary small">Current streak</div>
-        <div class="d-flex align-items-baseline gap-2">
-            <div class="display-6 mb-0">{{ streak_days }}</div>
-            <div class="text-secondary">days</div>
+    <div class="col">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-secondary small">Minutes lost (last 7 days)</div>
+          <div class="display-6">{{ bug_minutes_7d }}</div>
         </div>
       </div>
     </div>
   </div>
-</div>
 
+  <div class="mt-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h3 class="h6 mb-2">Open vs Fixed</h3>
+        <div class="mx-auto" style="max-width: 520px;">
+          <canvas id="bugsChart" height="130"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <div class="mt-4">
+  <hr class="my-5" />
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h4 fw-semibold mb-0">Learning</h2>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('learning_new') }}">+ New Learning Entry</a>
+  </div>
+  <div class="row g-3 row-cols-1 row-cols-md-2 row-cols-lg-4">
+    <div class="col">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-secondary small">Minutes (last 7 days)</div>
+          <div class="display-6">
+            {% if minutes_7d > 0 %}
+              <a class="text-decoration-none text-reset" href="{{ url_for('learning_list') }}">
+                {{ minutes_7d }}
+              </a>
+            {% else %}
+              {{ minutes_7d }}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-secondary small">Sessions (last 7 days)</div>
+          <div class="display-6">
+            {% if sessions_7d > 0 %}
+              <a class="text-decoration-none text-reset" href="{{ url_for('learning_list') }}">
+                {{ sessions_7d }}
+              </a>
+            {% else %}
+              {{ sessions_7d }}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-secondary small">Avg confidence (last 7 days)</div>
+          <div class="display-6">
+            {% if avg_conf_7d > 0 %}
+              <a class="text-decoration-none text-reset" href="{{ url_for('learning_list') }}">
+                {{ "%.2f"|format(avg_conf_7d) }}
+              </a>
+            {% else %}
+              {{ "%.2f"|format(avg_conf_7d) }}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-secondary small">Current streak</div>
+          <div class="d-flex align-items-baseline gap-2">
+              <div class="display-6 mb-0">
+                {% if streak_days > 0 %}
+                  <a class="text-decoration-none text-reset" href="{{ url_for('learning_list') }}">
+                    {{ streak_days }}
+                  </a>
+                {% else %}
+                  {{ streak_days }}
+                {% endif %}
+              </div>
+              <div class="text-secondary">days</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4">
     <div class="card shadow-sm">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <h2 class="h6 mb-0">Minutes per day (last 14 days)</h2>
+          <h3 class="h6 mb-0">Minutes per day (last 14 days)</h3>
         </div>
 
         <canvas id="minutesChart" height="90"></canvas>
@@ -104,6 +375,42 @@
         }
       }
     });
-  </script>
 
+    const bugsCtx = document.getElementById('bugsChart');
+    new Chart(bugsCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Total'],
+        datasets: [
+          {
+            label: 'Open',
+            data: [{{ open_bugs }}],
+            backgroundColor: '#f8d7da',
+            borderColor: '#dc3545',
+            borderWidth: 1,
+            borderRadius: 6
+          },
+          {
+            label: 'Fixed',
+            data: [{{ fixed_bugs }}],
+            backgroundColor: '#d1e7dd',
+            borderColor: '#198754',
+            borderWidth: 1,
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        indexAxis: 'y',
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: { beginAtZero: true, stacked: true },
+          y: { stacked: true }
+        }
+      }
+    });
+  </script>
 {% endblock %}

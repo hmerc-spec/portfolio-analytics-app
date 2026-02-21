@@ -13,7 +13,7 @@
   </div>
 
   <form class="row g-2 mb-3" method="get" action="{{ url_for('bugs_list') }}">
-    <div class="col-12 col-md-8">
+    <div class="col-12 col-md-6">
       <input
         type="text"
         class="form-control"
@@ -22,8 +22,16 @@
         value="{{ q }}"
       />
     </div>
-    <div class="col-12 col-md-4 d-flex gap-2">
-      <button class="btn btn-outline-primary w-100" type="submit">Search</button>
+    <div class="col-12 col-md-3">
+      <select class="form-select" name="status">
+        <option value="">All statuses</option>
+        {% for s in ['open', 'fixed'] %}
+          <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-3 d-flex gap-2">
+      <button class="btn btn-outline-primary w-100" type="submit">Filter</button>
       <a class="btn btn-outline-secondary w-100" href="{{ url_for('bugs_list') }}">Clear</a>
     </div>
   </form>
@@ -53,11 +61,7 @@
                   </td>
                   <td class="text-end">{{ b.minutes_lost }}</td>
                   <td>
-                    {% if b.status == "fixed" %}
-                      <span class="badge text-bg-success">fixed</span>
-                    {% else %}
-                      <span class="badge text-bg-warning">open</span>
-                    {% endif %}
+                    <span class="badge status-{{ b.status }}">{{ b.status }}</span>
                   </td>
                   <td>
                     {% if b.tags %}
@@ -84,7 +88,7 @@
       <ul class="pagination">
         {% if has_prev %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('bugs_list', q=q, page=page-1) }}">Prev</a>
+            <a class="page-link" href="{{ url_for('bugs_list', q=q, status=status, page=page-1) }}">Prev</a>
           </li>
         {% else %}
           <li class="page-item disabled">
@@ -97,14 +101,14 @@
             <li class="page-item disabled"><span class="page-link">…</span></li>
           {% else %}
             <li class="page-item {% if p == page %}active{% endif %}">
-              <a class="page-link" href="{{ url_for('bugs_list', q=q, page=p) }}">{{ p }}</a>
+              <a class="page-link" href="{{ url_for('bugs_list', q=q, status=status, page=p) }}">{{ p }}</a>
             </li>
           {% endif %}
         {% endfor %}
 
         {% if has_next %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('bugs_list', q=q, page=page+1) }}">Next</a>
+            <a class="page-link" href="{{ url_for('bugs_list', q=q, status=status, page=page+1) }}">Next</a>
           </li>
         {% else %}
           <li class="page-item disabled">

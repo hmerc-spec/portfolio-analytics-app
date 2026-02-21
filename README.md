@@ -38,3 +38,10 @@ Set these in your shell or hosting provider. Examples below use placeholders (no
    ```powershell
    python -m venv .venv
    .\.venv\Scripts\Activate.ps1
+
+## Migrations (Supabase SQL Editor)
+To apply manual migrations, copy the contents of a file in `migrations/` and run it in the Supabase SQL Editor.
+
+1. Open your Supabase project and go to SQL Editor.
+2. Create a new query and paste the contents of `migrations/003_timestamps.sql`.
+3. Run the query and confirm it completes successfully.

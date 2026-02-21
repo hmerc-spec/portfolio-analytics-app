@@ -215,6 +215,7 @@ def learning_edit(entry_id: int):
 @login_required
 def bugs_list():
     q = request.args.get("q", "").strip()
+    status = request.args.get("status", "").strip()
     page_text = request.args.get("page", "1").strip()
     try:
         page = int(page_text)
@@ -226,60 +227,46 @@ def bugs_list():
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            if q:
-                cur.execute(
-                    """
-                    select count(*)
-                    from bug_entries
-                    where title ilike %s
-                       or error_text ilike %s
-                       or fix_text ilike %s
-                       or tags ilike %s
-                    """,
-                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"),
-                )
-                total_count = cur.fetchone()[0]
-                total_pages = max(1, math.ceil(total_count / per_page))
-                if page > total_pages:
-                    page = total_pages
-                offset = (page - 1) * per_page
-                cur.execute(
-                    """
-                    select id, bug_date, title, minutes_lost, status, tags
-                    from bug_entries
-                    where title ilike %s
-                       or error_text ilike %s
-                       or fix_text ilike %s
-                       or tags ilike %s
-                    order by bug_date desc, created_at desc
-                    limit %s
-                    offset %s
-                    """,
-                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", per_page, offset),
-                )
-            else:
-                cur.execute(
-                    """
-                    select count(*)
-                    from bug_entries
-                    """
-                )
-                total_count = cur.fetchone()[0]
-                total_pages = max(1, math.ceil(total_count / per_page))
-                if page > total_pages:
-                    page = total_pages
-                offset = (page - 1) * per_page
-                cur.execute(
-                    """
-                    select id, bug_date, title, minutes_lost, status, tags
-                    from bug_entries
-                    order by bug_date desc, created_at desc
-                    limit %s
-                    offset %s
-                    """,
-                    (per_page, offset),
-                )
+            where = []
+            params = []
 
+            if q:
+                where.append(
+                    "(title ilike %s or error_text ilike %s or fix_text ilike %s or tags ilike %s)"
+                )
+                params.extend([f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"])
+
+            if status in ("open", "fixed"):
+                where.append("status = %s")
+                params.append(status)
+
+            where_sql = ("where " + " and ".join(where)) if where else ""
+
+            cur.execute(
+                f"""
+                select count(*)
+                from bug_entries
+                {where_sql}
+                """,
+                params,
+            )
+            total_count = cur.fetchone()[0]
+            total_pages = max(1, math.ceil(total_count / per_page))
+            if page > total_pages:
+                page = total_pages
+            offset = (page - 1) * per_page
+
+            cur.execute(
+                f"""
+                select id, bug_date, title, minutes_lost, status, tags
+                from bug_entries
+                {where_sql}
+                order by bug_date desc, created_at desc
+                limit %s
+                offset %s
+                """,
+                params + [per_page, offset],
+            )
             rows = cur.fetchall()
 
     has_prev = page > 1
@@ -301,6 +288,7 @@ def bugs_list():
         "bugs_list.html",
         bugs=bugs,
         q=q,
+        status=status,
         page=page,
         total_pages=total_pages,
         has_prev=has_prev,
@@ -365,7 +353,11 @@ def bugs_toggle_status(bug_id: int):
             cur.execute(
                 """
                 update bug_entries
-                set status = case when status = 'open' then 'fixed' else 'open' end
+                set status = case when status = 'open' then 'fixed' else 'open' end,
+                    completed_at = case
+                      when status = 'open' then now()
+                      else null
+                    end
                 where id = %s
                 """,
                 (bug_id,),
@@ -430,6 +422,74 @@ def dashboard():
             )
             daily_rows = cur.fetchall()
 
+            # bugs KPIs
+            cur.execute(
+                """
+                select
+                  coalesce(sum(case when status = 'open' then 1 else 0 end), 0) as open_bugs,
+                  coalesce(sum(case when status = 'fixed' then 1 else 0 end), 0) as fixed_bugs
+                from bug_entries
+                """
+            )
+            bug_counts = cur.fetchone()
+            open_bugs = bug_counts[0]
+            fixed_bugs = bug_counts[1]
+
+            cur.execute(
+                """
+                select coalesce(sum(minutes_lost), 0)
+                from bug_entries
+                where bug_date >= current_date - interval '6 days'
+                """
+            )
+            bug_minutes_7d = cur.fetchone()[0]
+
+            # projects KPIs
+            cur.execute(
+                """
+                select
+                  coalesce(sum(case when status = 'idea' then 1 else 0 end), 0) as idea_count,
+                  coalesce(sum(case when status = 'planned' then 1 else 0 end), 0) as planned_count,
+                  coalesce(sum(case when status = 'in_progress' then 1 else 0 end), 0) as in_progress_count,
+                  coalesce(sum(case when status = 'paused' then 1 else 0 end), 0) as paused_count,
+                  coalesce(sum(case when status = 'done' then 1 else 0 end), 0) as done_count,
+                  coalesce(count(*), 0) as total_count
+                from projects
+                """
+            )
+            project_counts = cur.fetchone()
+            projects_kpis = {
+                "idea": project_counts[0],
+                "planned": project_counts[1],
+                "in_progress": project_counts[2],
+                "paused": project_counts[3],
+                "done": project_counts[4],
+                "total": project_counts[5],
+            }
+
+            # features KPIs
+            cur.execute(
+                """
+                select
+                  coalesce(sum(case when status = 'backlog' then 1 else 0 end), 0) as backlog_count,
+                  coalesce(sum(case when status = 'planned' then 1 else 0 end), 0) as planned_count,
+                  coalesce(sum(case when status = 'in_progress' then 1 else 0 end), 0) as in_progress_count,
+                  coalesce(sum(case when status = 'blocked' then 1 else 0 end), 0) as blocked_count,
+                  coalesce(sum(case when status = 'done' then 1 else 0 end), 0) as done_count,
+                  coalesce(count(*), 0) as total_count
+                from features
+                """
+            )
+            feature_counts = cur.fetchone()
+            features_kpis = {
+                "backlog": feature_counts[0],
+                "planned": feature_counts[1],
+                "in_progress": feature_counts[2],
+                "blocked": feature_counts[3],
+                "done": feature_counts[4],
+                "total": feature_counts[5],
+            }
+
     # Current streak: consecutive days (ending today) with minutes > 0
     streak_days = 0
     for day, total_minutes in reversed(daily_rows):  # start from today backwards
@@ -450,6 +510,11 @@ def dashboard():
         streak_days=streak_days,
         labels=labels,
         values=values,
+        open_bugs=open_bugs,
+        fixed_bugs=fixed_bugs,
+        bug_minutes_7d=bug_minutes_7d,
+        projects_kpis=projects_kpis,
+        features_kpis=features_kpis,
     )
 
 
@@ -457,6 +522,7 @@ def dashboard():
 @login_required
 def projects_list():
     q = request.args.get("q", "").strip()
+    status = request.args.get("status", "").strip()
     page_text = request.args.get("page", "1").strip()
     try:
         page = int(page_text)
@@ -468,59 +534,46 @@ def projects_list():
 
     with get_db_connection() as conn:
         with conn.cursor() as cur:
+            where = []
+            params = []
+
             if q:
-                cur.execute(
-                    """
-                    select count(*)
-                    from projects
-                    where name ilike %s
-                       or problem_statement ilike %s
-                       or notes ilike %s
-                       or tags ilike %s
-                    """,
-                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"),
+                where.append(
+                    "(name ilike %s or problem_statement ilike %s or notes ilike %s or tags ilike %s)"
                 )
-                total_count = cur.fetchone()[0]
-                total_pages = max(1, math.ceil(total_count / per_page))
-                if page > total_pages:
-                    page = total_pages
-                offset = (page - 1) * per_page
-                cur.execute(
-                    """
-                    select id, created_at, name, status, tags
-                    from projects
-                    where name ilike %s
-                       or problem_statement ilike %s
-                       or notes ilike %s
-                       or tags ilike %s
-                    order by created_at desc
-                    limit %s
-                    offset %s
-                    """,
-                    (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", per_page, offset),
-                )
-            else:
-                cur.execute(
-                    """
-                    select count(*)
-                    from projects
-                    """
-                )
-                total_count = cur.fetchone()[0]
-                total_pages = max(1, math.ceil(total_count / per_page))
-                if page > total_pages:
-                    page = total_pages
-                offset = (page - 1) * per_page
-                cur.execute(
-                    """
-                    select id, created_at, name, status, tags
-                    from projects
-                    order by created_at desc
-                    limit %s
-                    offset %s
-                    """,
-                    (per_page, offset),
-                )
+                params.extend([f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"])
+
+            if status in ("idea", "planned", "in_progress", "paused", "done"):
+                where.append("status = %s")
+                params.append(status)
+
+            where_sql = ("where " + " and ".join(where)) if where else ""
+
+            cur.execute(
+                f"""
+                select count(*)
+                from projects
+                {where_sql}
+                """,
+                params,
+            )
+            total_count = cur.fetchone()[0]
+            total_pages = max(1, math.ceil(total_count / per_page))
+            if page > total_pages:
+                page = total_pages
+            offset = (page - 1) * per_page
+
+            cur.execute(
+                f"""
+                select id, created_at, name, status, tags
+                from projects
+                {where_sql}
+                order by created_at desc
+                limit %s
+                offset %s
+                """,
+                params + [per_page, offset],
+            )
             rows = cur.fetchall()
 
     has_prev = page > 1
@@ -541,6 +594,7 @@ def projects_list():
         "projects_list.html",
         projects=projects,
         q=q,
+        status=status,
         page=page,
         total_pages=total_pages,
         has_prev=has_prev,
@@ -647,10 +701,14 @@ def projects_edit(project_id: int):
                 cur.execute(
                     """
                     update projects
-                    set name=%s, problem_statement=%s, status=%s, notes=%s, tags=%s
+                    set name=%s, problem_statement=%s, status=%s, notes=%s, tags=%s,
+                        completed_at = case
+                          when %s = 'done' then coalesce(completed_at, now())
+                          else null
+                        end
                     where id=%s
                     """,
-                    (name, problem_statement, status, notes, tags, project_id),
+                    (name, problem_statement, status, notes, tags, status, project_id),
                 )
 
         return redirect(url_for("projects_detail", project_id=project_id))
@@ -1080,10 +1138,24 @@ def bugs_edit(bug_id: int):
                         fix_text = %s,
                         minutes_lost = %s,
                         status = %s,
-                        tags = %s
+                        tags = %s,
+                        completed_at = case
+                          when %s = 'fixed' then coalesce(completed_at, now())
+                          else null
+                        end
                     where id = %s
                     """,
-                    (bug_date or None, title, error_text, fix_text, minutes_lost, status, tags, bug_id),
+                    (
+                        bug_date or None,
+                        title,
+                        error_text,
+                        fix_text,
+                        minutes_lost,
+                        status,
+                        tags,
+                        status,
+                        bug_id,
+                    ),
                 )
 
         return redirect(url_for("bugs_detail", bug_id=bug_id))

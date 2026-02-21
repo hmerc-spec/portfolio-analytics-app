@@ -71,17 +71,7 @@
                   <td class="fw-semibold">{{ f.title }}</td>
                   <td class="text-secondary">{{ f.project_name }}</td>
                   <td>
-                    {% if f.status == 'done' %}
-                      <span class="badge text-bg-success">done</span>
-                    {% elif f.status == 'in_progress' %}
-                      <span class="badge text-bg-primary">in_progress</span>
-                    {% elif f.status == 'blocked' %}
-                      <span class="badge text-bg-danger">blocked</span>
-                    {% elif f.status == 'planned' %}
-                      <span class="badge text-bg-info">planned</span>
-                    {% else %}
-                      <span class="badge text-bg-secondary">backlog</span>
-                    {% endif %}
+                    <span class="badge status-{{ f.status }}">{{ f.status }}</span>
                   </td>
                   <td class="text-end">{{ f.priority }}</td>
                   <td class="text-end">{{ f.effort }}</td>
